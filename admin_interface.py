@@ -9,6 +9,7 @@ from tkcalendar import DateEntry
 import keyboard
 import pymysql
 from tkinter import Frame
+import sqlite3
 
 
 PIN = "1234"
@@ -25,14 +26,24 @@ def open_system():
     second_window()
 
 def second_window():
-    # noinspection PyGlobalUndefined
+    try:
+        conn = sqlite3.connect('libtraq_db.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT `library_id`, `name`, `course`, `purpose`, `date_&_time` FROM `library attendance`")
+        row = cursor.fetchall()
+        for row in rows:
+            researcher_table.insert("", "end", values=row)
+
+    except sqlite3.Error as e:
+        print("SQLite error:", e)
+    except Exception as e:
+        print("An error occurred:", e)
+
     global second_window
     second_window = tk.Tk()
     second_window.geometry("1366x768")
     second_window.resizable(height=False, width=False)
     second_window.title("LibTraQ: Library Tracker and Monitoring System using QR Code")
-
-    student_records = []
 
     title_label = tk.Label(second_window, text="Library Tracker and Monitoring System Using QR Code", bg="Silver", font=("Arial Rounded MT Bold", 30, "bold"), borderwidth=10, relief="ridge")
     title_label.place(x=0, y=0, relwidth=0.99, height=100)
@@ -44,33 +55,23 @@ def second_window():
     researcher_frame.place(x=0, y=110)
 
     researcher_table = ttk.Treeview(researcher_frame)
-    researcher_table["columns"] = ("ID Number", "Name", "Course", "Purpose", "Date and Time")
+    researcher_table["columns"] = ("Library ID", "Name", "Course", "Purpose", "Date and Time")
 
     researcher_table.column("#0", width=0, stretch=tk.NO)
-    researcher_table.column("ID Number", anchor=tk.W, width=246)
+    researcher_table.column("Library ID", anchor=tk.W, width=246)
     researcher_table.column("Name", anchor=tk.W, width=246)
     researcher_table.column("Course", anchor=tk.W, width=246)
     researcher_table.column("Purpose", anchor=tk.W, width=246)
     researcher_table.column("Date and Time", anchor=tk.W, width=246)
 
     researcher_table.heading("#0", text="", anchor=tk.W)
-    researcher_table.heading("ID Number", text="ID Number", anchor=tk.W)
+    researcher_table.heading("Library ID", text="Library ID", anchor=tk.W)
     researcher_table.heading("Name", text="Name", anchor=tk.W)
     researcher_table.heading("Course", text="Course", anchor=tk.W)
     researcher_table.heading("Purpose", text="Purpose", anchor=tk.W)
     researcher_table.heading("Date and Time", text="Date and Time", anchor=tk.W)
 
     researcher_table.pack(fill=tk.BOTH, expand=True)
-
-    #researchers_data = [
-       # ("20-0019", "Jhea Alyanna E. Jinon", "BSIT", "Internet", "August 1, 2023 (8:00am)"),
-        #("20-0029", "Jessie Jane P. Pama", "BSIT", "Read Books", "August 2, 2023 (8:00am)"),
-        #("20-0013", "John Paul P. Molavisar", "BSIT", "Others", "August 2, 2023 (8:00am)"),
-        #("20-0017", "Edmer Jan P. Carillo", "BSIT", "Internet", "August 3, 2023 (4:00pm)"),
-    #]
-
-    #for data in researchers_data:
-     #   researcher_table.insert("", tk.END, values=data)
 
     def open_add_record_window():
         second_window.withdraw()
