@@ -11,7 +11,6 @@ import pymysql
 from tkinter import Frame
 import sqlite3
 
-
 PIN = "1234"
 
 def verify_pin(event=None):
@@ -26,19 +25,6 @@ def open_system():
     second_window()
 
 def second_window():
-    try:
-        conn = sqlite3.connect('libtraq_db.db')
-        cursor = conn.cursor()
-        cursor.execute("SELECT `library_id`, `name`, `course`, `purpose`, `date_&_time` FROM `library attendance`")
-        row = cursor.fetchall()
-        for row in rows:
-            researcher_table.insert("", "end", values=row)
-
-    except sqlite3.Error as e:
-        print("SQLite error:", e)
-    except Exception as e:
-        print("An error occurred:", e)
-
     global second_window
     second_window = tk.Tk()
     second_window.geometry("1366x768")
@@ -104,22 +90,14 @@ def second_window():
                 display_selected_image(file_path)
 
         def display_selected_image(file_path):
-            # Clear any existing content in the photo_box
             for widget in photo_box.winfo_children():
                 widget.destroy()
-
-            # Open the selected image using PIL
             image = Image.open(file_path)
-
-            # Resize the image to fit the dimensions of the photo_box frame
             image = image.resize((210, 195), Image.LANCZOS)
-
-            # Convert the PIL image to a Tkinter PhotoImage
             photo = ImageTk.PhotoImage(image)
 
-            # Create a label to display the image in the photo_box frame
             image_label = tk.Label(photo_box, image=photo)
-            image_label.image = photo  # Keep a reference to the PhotoImage to prevent it from being garbage collected
+            image_label.image = photo
             image_label.pack(fill="both", expand=True)
 
         def generate_qr_code():
@@ -246,12 +224,10 @@ def second_window():
     button_add_record.pack(pady=10)
 
     def open_list_of_students_window():
-        # noinspection PyGlobalUndefined
         global edit_photo
-        # noinspection PyGlobalUndefined
         global delete_photo
-        # noinspection PyGlobalUndefined
         global search_photo
+
         second_window.withdraw()
 
         list_of_students_window = tk.Toplevel(second_window)
@@ -358,7 +334,7 @@ def second_window():
         title_label.place(x=0, y=102, relwidth=0.99, height=80)
 
         semester_label = tk.Label(generate_report_window, text="Select Semester:", font=("Arial", 18))
-        semester_label.place(x=0, y=200)  # Adjust the y-coordinate as needed
+        semester_label.place(x=0, y=200)
 
         semester_var = tk.StringVar(generate_report_window)
         semester_choices = ["Individual Date","1st Semester", "2nd Semester", "Whole School Year"]
@@ -423,12 +399,10 @@ def second_window():
                 qr.make(fit=True)
                 qr_image = qr.make_image(fill="black", back_color="white")
 
-                # Convert the QR code image to a PhotoImage to display in a Label
                 qr_image_tk = ImageTk.PhotoImage(qr_image)
 
-                # Create a Label to display the QR code image inside the qr_box
                 qr_label = tk.Label(qr_box, image=qr_image_tk)
-                qr_label.image = qr_image_tk  # To prevent the image from being garbage collected
+                qr_label.image = qr_image_tk
                 qr_label.pack()
 
         app_title_label = tk.Label(generate_qr_window, text="Library Tracker and Monitoring System Using QR Code", font=("Arial Rounded MT Bold", 30, "bold"))
@@ -444,13 +418,10 @@ def second_window():
         qr_text_entry.place(x=240, y=240)
         qr_text_entry.focus()
 
-        generate_button = tk.Button(generate_qr_window, text="Generate", bg="gray", font=("Arial", 16),
-                                    command=generate_qr_code)
+        generate_button = tk.Button(generate_qr_window, text="Generate", bg="gray", font=("Arial", 16), command=generate_qr_code)
         generate_button.place(x=620, y=290)
 
-        # Create the qr_box
-        qr_box = tk.Frame(generate_qr_window, width=220, height=200, bg="white", highlightbackground="black",
-                          highlightthickness=2)
+        qr_box = tk.Frame(generate_qr_window, width=220, height=200, bg="white", highlightbackground="black",  highlightthickness=2)
         qr_box.place(x=370, y=390)
 
         print_button = tk.Button(generate_qr_window, text="Print", bg="gray", font=("Arial", 16))
@@ -525,7 +496,6 @@ def second_window():
             old_pin = old_pin_entry.get()
             new_pin = new_pin_entry.get()
             if not simulated and validate_pins(old_pin, new_pin):
-                # noinspection PyGlobalUndefined
 
                 global current_pin
                 current_pin = new_pin
@@ -539,7 +509,6 @@ def second_window():
             return True
 
         def simulate_enter(event=None):
-            # noinspection PyGlobalUndefined
             global simulated
             simulated = True
 
@@ -603,11 +572,10 @@ def second_window():
             about_us_window.destroy()
             second_window.deiconify()
 
-        background_image = Image.open("images/about_us_background.png")  # Change to your image file path
+        background_image = Image.open("images/about_us_background.png")
         background_image = background_image.resize((1366, 768), Image.LANCZOS)
         background_photo = ImageTk.PhotoImage(background_image)
 
-        # Create a label to display the background image
         background_label = tk.Label(about_us_window, image=background_photo)
         background_label.place(x=0, y=0, relwidth=1, relheight=1)
         about_us_window.background = background_photo
@@ -625,8 +593,7 @@ def second_window():
     icon_image = icon_image.resize((new_width, new_height), Image.LANCZOS)
     icon_photo = ImageTk.PhotoImage(icon_image)
 
-    open_about_us_window = tk.Button(buttons_frame, image=icon_photo, command=open_about_us_window, height=new_height,
-                                     width=new_width)
+    open_about_us_window = tk.Button(buttons_frame, image=icon_photo, command=open_about_us_window, height=new_height, width=new_width)
     open_about_us_window.image = icon_photo
     open_about_us_window.pack(pady=10)
 

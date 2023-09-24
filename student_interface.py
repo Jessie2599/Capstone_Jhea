@@ -4,40 +4,24 @@ from datetime import datetime
 from tkinter import *
 import pymysql
 
-# Initialize a list to store information
 recorded_data = []
-
-# Initialize date_time_label as a global variable
 date_time_label = None
-
-# Initialize id_entry as a global variable
 id_entry = None
-
-# Initialize purpose_label as a global variable
 purpose_label = None
-
-# Initialize purposes_frame as a global variable
 purposes_frame = None
-
-# Initialize a variable to keep track of whether the entry is enabled
 entry_enabled = True
-
-# Initialize a variable to store the selected purpose
 selected_purpose = None
-
 db = None
 cursor = None
 
 def clear_entry():
     id_entry.delete(0, END)
-
 def update_datetime():
     global date_time_label
     current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     day_of_week = datetime.now().strftime("%A")
     date_time_label.config(text=f"{day_of_week}, {current_datetime}")
     date_time_label.after(1000, update_datetime)
-
 def clear_and_restart():
     global  id_entry, purpose_label, purposes_frame, entry_enabled, selected_purpose
     id_entry.config(state=tk.NORMAL)  # Enable the entry widget
@@ -50,7 +34,6 @@ def clear_and_restart():
 
     entry_enabled = True
     selected_purpose = None
-
 def restart():
     clear_and_restart()
     display_purposes(None)
@@ -65,7 +48,6 @@ def save_and_confirm_purpose(purpose):
         connect = pymysql.connect(host='localhost', user='root', password="", database='libtraq_db')
         cursor = connect.cursor()
         library_id_get = id_entry.get()
-
 
         try:
             cursor.execute(f"INSERT INTO `library attendance` (`library_id`, `purpose`, `date_&_time`) VALUES ('{library_id_get}', '{purpose}', '{current_datetime}')")
@@ -82,7 +64,7 @@ def save_and_confirm_purpose(purpose):
             messagebox.showerror("Database Error", f"Error: {e}")
 
 def display_purposes(event):
-    global  id_entry, purpose_label, purposes_frame, entry_enabled, selected_purpose  # Declare id_var, id_entry, purpose_label, purposes_frame, entry_enabled, and selected_purpose as global variables
+    global  id_entry, purpose_label, purposes_frame, entry_enabled, selected_purpose
     id_number = id_entry.get()
 
     if id_number and entry_enabled:
@@ -96,14 +78,12 @@ def display_purposes(event):
             "f. Others"
         ]
 
-        # Clear the displayed purposes in the purposes_frame
         for widget in purposes_frame.winfo_children():
             widget.destroy()
 
-        for i, purpose in enumerate(purposes[1:], start=1):  # Start from index 1 to skip "Purpose"
+        for i, purpose in enumerate(purposes[1:], start=1):
             tk.Label(purposes_frame, text=purpose, font=("Arial", 18)).pack()
 
-        # Disable the entry widget after processing the ID number
         id_entry.config(state=tk.DISABLED)
         entry_enabled = False
 
@@ -113,7 +93,7 @@ def handle_purpose_key(key, purpose):
     save_and_confirm_purpose(purpose)
 
 def home():
-    global date_time_label, id_entry, purpose_label, purposes_frame, home, entry_enabled, selected_purpose  # Declare date_time_label, id_var, id_entry, purpose_label, purposes_frame, home, entry_enabled, and selected_purpose as global variables
+    global date_time_label, id_entry, purpose_label, purposes_frame, home, entry_enabled, selected_purpose
     home = tk.Tk()
     home.title("LibTraQ: Library Tracker and Monitoring System using QR Code")
     home.geometry("1366x768")
@@ -137,22 +117,19 @@ def home():
     id_entry.place(x=865, y=360)
     id_entry.focus()
 
-    id_entry.bind("<Return>", display_purposes)  # Bind Enter key press to display_purposes function
+    id_entry.bind("<Return>", display_purposes)
 
     purpose_label = tk.Label(home, text="Purpose:", font=("Arial", 20))
     purpose_label.place(x=660, y=410)
 
-    # Create a frame to hold the dynamic labels for purposes
     purposes_frame = tk.Frame(home)
     purposes_frame.place(x=860, y=410)
 
     entry_enabled = True
     selected_purpose = None
 
-    # Bind spacebar key to restart
     home.bind("<space>", lambda event: restart())
 
-    # Bind keys a-f to handle_purpose_key
     home.bind("a", lambda event: handle_purpose_key("a", "Read Book"))
     home.bind("b", lambda event: handle_purpose_key("b", "Borrowed/Returned Books"))
     home.bind("c", lambda event: handle_purpose_key("c", "Connect Internet"))
@@ -160,14 +137,8 @@ def home():
     home.bind("e", lambda event: handle_purpose_key("e", "Go to the Librarian"))
     home.bind("f", lambda event: handle_purpose_key("f", "Others"))
 
-    db_config = {
-        'host': 'localhost',
-        'user': 'root',
-        'password': '',
-        'db': 'libtraq_db',
-    }
+    db_config = {'host': 'localhost', 'user': 'root', 'password': '', 'db': 'libtraq_db',}
     db = pymysql.connect(**db_config)
     cursor = db.cursor()
     home.mainloop()
-
 home()
