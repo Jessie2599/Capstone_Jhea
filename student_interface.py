@@ -47,17 +47,15 @@ def save_and_confirm_purpose(purpose):
         recorded_data.append([id_number, current_datetime, purpose])
         connect = pymysql.connect(host='localhost', user='root', password="", database='libtraq_db')
         cursor = connect.cursor()
-        library_id_get = id_entry.get()
+        id_no_get = id_entry.get()
 
         try:
-            cursor.execute(f"INSERT INTO `library attendance` (`library_id`, `purpose`, `date_&_time`) VALUES ('{library_id_get}', '{purpose}', '{current_datetime}')")
+            cursor.execute(f"INSERT INTO `library_attendance` (`id_no`, `purpose`, `date_&_time`) VALUES ('{id_no_get}', '{purpose}', '{current_datetime}')")
             connect.commit()
             connect.close()
             messagebox.showinfo("Save Successfeul!")
-
             confirmation_message = f"ID: {id_number}\nDate and Time: {current_datetime}\nPurpose: {purpose}"
             result = messagebox.showinfo("Successfully Login!", confirmation_message)
-
             clear_entry()
             clear_and_restart()
         except pymysql.Error as e:

@@ -11,6 +11,8 @@ import pymysql
 from tkinter import Frame
 import sqlite3
 
+
+
 PIN = "1234"
 
 def verify_pin(event=None):
@@ -41,17 +43,17 @@ def second_window():
     researcher_frame.place(x=0, y=110)
 
     researcher_table = ttk.Treeview(researcher_frame)
-    researcher_table["columns"] = ("Library ID", "Name", "Course", "Purpose", "Date and Time")
+    researcher_table["columns"] = ("ID Number", "Name", "Course", "Purpose", "Date and Time")
 
     researcher_table.column("#0", width=0, stretch=tk.NO)
-    researcher_table.column("Library ID", anchor=tk.W, width=246)
+    researcher_table.column("ID Number", anchor=tk.W, width=246)
     researcher_table.column("Name", anchor=tk.W, width=246)
     researcher_table.column("Course", anchor=tk.W, width=246)
     researcher_table.column("Purpose", anchor=tk.W, width=246)
     researcher_table.column("Date and Time", anchor=tk.W, width=246)
 
     researcher_table.heading("#0", text="", anchor=tk.W)
-    researcher_table.heading("Library ID", text="Library ID", anchor=tk.W)
+    researcher_table.heading("ID Number", text="Library ID", anchor=tk.W)
     researcher_table.heading("Name", text="Name", anchor=tk.W)
     researcher_table.heading("Course", text="Course", anchor=tk.W)
     researcher_table.heading("Purpose", text="Purpose", anchor=tk.W)
@@ -94,6 +96,7 @@ def second_window():
                 widget.destroy()
             image = Image.open(file_path)
             image = image.resize((210, 195), Image.LANCZOS)
+
             photo = ImageTk.PhotoImage(image)
 
             image_label = tk.Label(photo_box, image=photo)
@@ -106,14 +109,14 @@ def second_window():
                 qr_data = f"ID: {id_number}\nName: {last_name}, {first_name} {middle_name}\nSex: {sex}\nCourse: {course}"
                 messagebox.showinfo("QR Code", qr_data)
 
+        def go_back():
+            add_record_window.destroy()
+            second_window.deiconify()
+
         add_record_window = tk.Toplevel(second_window)
         add_record_window.title("Add Record")
         add_record_window.geometry("1366x768")
         add_record_window.resizable(height=False, width=False)
-
-        def go_back():
-            add_record_window.destroy()
-            second_window.deiconify()
 
         app_title_label = tk.Label(add_record_window, text="Library Tracker and Monitoring System Using QR Code", font=("Arial Rounded MT Bold", 30, "bold"))
         app_title_label.place(x=0, y=0, relwidth=0.99, height=100)
@@ -196,8 +199,7 @@ def second_window():
         photo_box = Frame(add_record_window, width=220, height=200, bg="white", highlightbackground="black",highlightthickness=2)
         photo_box.place(x=10, y=200)
 
-        qr_photo_box = Frame(add_record_window, width=220, height=200, bg="white", highlightbackground="black",
-                          highlightthickness=2)
+        qr_photo_box = Frame(add_record_window, width=220, height=200, bg="white", highlightbackground="black", highlightthickness=2)
         qr_photo_box.place(x=260, y=200)
 
         upload_button = tk.Button(add_record_window, text="Upload Photo", font=("Arial", 18), command=open_file_dialog)
