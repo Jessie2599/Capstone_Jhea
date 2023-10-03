@@ -1,0 +1,13 @@
+ def populate_treeview(table):
+        # Delete existing items in the Treeview
+        for row in table.get_children():
+            table.delete(row)
+
+        # Fetch data from the 'student' table
+        cursor.execute(
+            "SELECT id_no, first_name, middle_name, last_name, sex, course, status, qr_code, photo FROM student")
+        rows = cursor.fetchall()
+
+        # Insert data into the Treeview
+        for row in rows:
+            table.insert("", "end", values=row)

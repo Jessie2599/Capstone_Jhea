@@ -40,6 +40,7 @@ def restart():
 
 def save_and_confirm_purpose(purpose):
     global id_entry, entry_enabled, selected_purpose
+
     id_number = id_entry.get()
 
     if id_number:
@@ -50,41 +51,68 @@ def save_and_confirm_purpose(purpose):
         id_no_get = id_entry.get()
 
         try:
-            cursor.execute(f"INSERT INTO `library_attendance` (`id_no`, `purpose`, `date_&_time`) VALUES ('{id_no_get}', '{purpose}', '{current_datetime}')")
-            connect.commit()
-            connect.close()
-            messagebox.showinfo("Save Successfeul!")
-            confirmation_message = f"ID: {id_number}\nDate and Time: {current_datetime}\nPurpose: {purpose}"
-            result = messagebox.showinfo("Successfully Login!", confirmation_message)
-            clear_entry()
-            clear_and_restart()
+            # Fetch the First Name, Middle Name, Last Name, and Course from the "student" table
+            cursor.execute("SELECT first_name, middle_name, last_name, course FROM student WHERE id_no = %s", (id_no_get,))
+            result = cursor.fetchone()
+
+            if result:
+                first_name, middle_name, last_name, course = result
+                cursor.execute(f"INSERT INTO `library_attendance` (`id_no`, `first_name`, `middle_name`, `last_name`, `course`, `purpose`, `date_and_time`) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                               (id_no_get, first_name, middle_name, last_name, course, purpose, current_datetime))
+                connect.commit()
+                connect.close()
+                messagebox.showinfo("Save Successful!")
+                confirmation_message = f"ID: {id_number}\nFirst Name: {first_name}\nMiddle Name: {middle_name}\nLast Name: {last_name}\nCourse: {course}\nDate and Time: {current_datetime}\nPurpose: {purpose}"
+                result = messagebox.showinfo("Successfully Logged In!", confirmation_message)
+                clear_entry()
+                clear_and_restart()
+            else:
+                messagebox.showerror("Error", "ID Number not found in the 'student' table.")
         except pymysql.Error as e:
             messagebox.showerror("Database Error", f"Error: {e}")
 
+def check_id_number(id_number):
+    # Connect to the database
+    connect = pymysql.connect(host='localhost', user='root', password="", database='libtraq_db')
+    cursor = connect.cursor()
+
+    # Check if the ID number exists in the "student" table
+    cursor.execute("SELECT id_no FROM student WHERE id_no = %s", (id_number,))
+    result = cursor.fetchone()
+
+    # Close the database connection
+    connect.close()
+
+    return result is not None
+
+
 def display_purposes(event):
-    global  id_entry, purpose_label, purposes_frame, entry_enabled, selected_purpose
+    global id_entry, entry_enabled, selected_purpose
     id_number = id_entry.get()
 
     if id_number and entry_enabled:
-        purposes = [
-            "Purpose",
-            "a. Read Book",
-            "b. Borrowed/Returned Books",
-            "c. Connect Internet",
-            "d. Research",
-            "e. Go to the Librarian",
-            "f. Others"
-        ]
+        # Check if the entered ID number exists in the database
+        if check_id_number(id_number):
+            purposes = [
+                "Purpose",
+                "a. Read Book",
+                "b. Borrowed/Returned Books",
+                "c. Connect Internet",
+                "d. Research",
+                "e. Go to the Librarian",
+                "f. Others"
+            ]
 
-        for widget in purposes_frame.winfo_children():
-            widget.destroy()
+            for widget in purposes_frame.winfo_children():
+                widget.destroy()
 
-        for i, purpose in enumerate(purposes[1:], start=1):
-            tk.Label(purposes_frame, text=purpose, font=("Arial", 18)).pack()
+            for i, purpose in enumerate(purposes[1:], start=1):
+                tk.Label(purposes_frame, text=purpose, font=("Arial", 18)).pack()
 
-        id_entry.config(state=tk.DISABLED)
-        entry_enabled = False
-
+            id_entry.config(state=tk.DISABLED)
+            entry_enabled = False
+        else:
+            messagebox.showerror("Error", "Invalid ID Number. Please try again.")
 def handle_purpose_key(key, purpose):
     global selected_purpose
     selected_purpose = purpose
