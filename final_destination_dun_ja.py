@@ -156,7 +156,7 @@ def second_window():
     second_window.mainloop()
 
 def open_add_record_window():
-    second_window.withdraw()
+
     def add_record_window_save_to_db():
         id_get = id_entry.get()
         fname_get = first_name_entry.get()
@@ -183,7 +183,7 @@ def open_add_record_window():
             status_var.set("None")
 
         except Exception as error:
-            messagebox.showerror("Error! The ID Number is already Exist", str(error))
+            messagebox.showerror("Error!", str(error))
             print(error)
 
     def open_file_dialog():
@@ -320,9 +320,91 @@ def open_add_record_window():
     save_button = tk.Button(add_record_window, text="Save Record", bg="gray", font=("Arial", 18), command=add_record_window_save_to_db)
     save_button.place(x=670, y=490)
 
-    open_add_record_window()
+    open_add_record_window_mainloop()
 
 def open_list_of_students_window():
+    global table
+    def update_student(event):
+        global table
+        selected_item = table.focus()
+        if not selected_item:
+            return
+        selected_student_values = table.item(selected_item, 'values')
+
+        search_entry.delete(0, tk.END)
+        search_entry.insert(0, selected_student_values[1])
+
+        update_window = tk.Toplevel()
+        update_window.title("Update Student")
+        update_window.geometry("600x400")
+
+        id_no_label = tk.Label(update_window, text="ID Number:")
+        id_no_label.pack()
+        id_no_entry = tk.Entry(update_window)
+        id_no_entry.insert(0, selected_student_values[0])
+        id_no_entry.pack()
+
+        first_name_label = tk.Label(update_window, text="First Name:")
+        first_name_label.pack()
+        first_name_entry = tk.Entry(update_window)
+        first_name_entry.insert(0, selected_student_values[1])
+        first_name_entry.pack()
+
+        middle_name_label = tk.Label(update_window, text="Middle Name:")
+        middle_name_label.pack()
+        middle_name_entry = tk.Entry(update_window)
+        middle_name_entry.insert(0, selected_student_values[2])
+        middle_name_entry.pack()
+
+        last_name_label = tk.Label(update_window, text="Last Name:")
+        last_name_label.pack()
+        last_name_entry = tk.Entry(update_window)
+        last_name_entry.insert(0, selected_student_values[3])
+        last_name_entry.pack()
+
+        sex_label = tk.Label(update_window, text="Sex:")
+        sex_label.pack()
+        sex_entry = tk.Entry(update_window)
+        sex_entry.insert(0, selected_student_values[4])
+        sex_entry.pack()
+
+        course_label = tk.Label(update_window, text="Course:")
+        course_label.pack()
+        course_entry = tk.Entry(update_window)
+        course_entry.insert(0, selected_student_values[5])
+        course_entry.pack()
+
+        status_label = tk.Label(update_window, text="Status:")
+        status_label.pack()
+        status_entry = tk.Entry(update_window)
+        status_entry.insert(0, selected_student_values[6])
+        status_entry.pack()
+
+        update_button = tk.Button(update_window, text="Update", command=lambda: perform_update(update_window, id_no_entry, first_name_entry, middle_name_entry, last_name_entry, sex_entry, course_entry, status_entry))
+        update_button.pack()
+
+    def perform_update(update_window, id_no_entry, first_name_entry, middle_name_entry, last_name_entry, sex_entry, course_entry, status_entry):
+        updated_id_no = id_no_entry.get()
+        updated_first_name = first_name_entry.get()
+        updated_middle_name = middle_name_entry.get()
+        updated_last_name = last_name_entry.get()
+        updated_sex = sex_entry.get()
+        updated_course = course_entry.get()
+        updated_status = status_entry.get()
+
+        conn = connection()
+        cursor = conn.cursor()
+        update_query = "UPDATE student SET first_name = %s, middle_name = %s, last_name = %s, sex = %s, course = %s, status = %s WHERE id_no = %s"
+        cursor.execute(update_query, (updated_first_name, updated_middle_name, updated_last_name, updated_sex, updated_course, updated_status, updated_id_no))
+        conn.commit()
+        conn.close()
+
+        # Close the update window
+        update_window.destroy()
+
+        # Refresh the table with updated data
+        populate_treeview(table)
+
     def populate_treeview(table):
         # Delete existing items in the Treeview
         for row in table.get_children():
@@ -341,7 +423,6 @@ def open_list_of_students_window():
     def search_data():
         search_query = search_entry.get().strip().lower()
 
-        # Clear the current items in the Treeview
         for row in table.get_children():
             table.delete(row)
 
@@ -356,6 +437,7 @@ def open_list_of_students_window():
                 table.insert("", "end", values=row)
 
         conn.close()
+
     def connection():
         conn = pymysql.connect(host="localhost", user="root", password="", database="libtraq_db")
         return conn
@@ -400,13 +482,16 @@ def open_list_of_students_window():
     table = ttk.Treeview(table_frame, columns=table_columns, show="headings")
     table.place(x=1000, y=1000, width=1000)
 
-    scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=table.yview)
-    scrollbar.pack(side="right", fill="y")
+    scrollbar = ttk.Scrollbar(list_of_students_window, orient="vertical", command=table.yview)
     table.configure(yscrollcommand=scrollbar.set)
+    table.pack(fill="both", expand=False)
+    scrollbar.pack(side="right", fill="y")
+
+    table.bind("<Double-1>", update_student)
 
     for col in table_columns:
         table.heading(col, text=col)
-        table.column(col, width=1000)
+        table.column(col, width=100)
 
     # Define column headers
     table.heading("ID Number", text="ID Number")
@@ -432,11 +517,6 @@ def open_list_of_students_window():
 
     # Populate the Treeview with data
     populate_treeview(table)
-
-    scrollbar = ttk.Scrollbar(list_of_students_window, orient="vertical", command=table.yview)
-    table.configure(yscrollcommand=scrollbar.set)
-    table.pack(fill="both", expand=True)
-    scrollbar.pack(side="right", fill="y")
 
     list_of_students_window.mainloop()
 
