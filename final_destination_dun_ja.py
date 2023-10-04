@@ -13,6 +13,7 @@ import sqlite3
 
 PIN = "1234"
 my_tree = None
+rows = []
 
 def connection():
     conn=pymysql.connect(host="localhost", user="root", password="", database="libtraq_db")
@@ -61,10 +62,6 @@ def second_window():
         return results
 
     my_tree = ttk.Treeview(second_window)
-
-    #scrollbar = ttk.Scrollbar(my_tree, orient="vertical", command=my_tree.yview)
-    #scrollbar.pack(side="right", fill="y")
-    #my_tree.configure(yscrollcommand=scrollbar.set)
 
     my_tree['columns'] = ("ID Number", "First Name", "Middle Name", "Last Name", "Course", "Purpose", "Date & Time")
 
@@ -159,6 +156,7 @@ def second_window():
     second_window.mainloop()
 
 def open_add_record_window():
+    second_window.withdraw()
     def add_record_window_save_to_db():
         id_get = id_entry.get()
         fname_get = first_name_entry.get()
@@ -185,7 +183,7 @@ def open_add_record_window():
             status_var.set("None")
 
         except Exception as error:
-            messagebox.showerror("Error", str(error))
+            messagebox.showerror("Error! The ID Number is already Exist", str(error))
             print(error)
 
     def open_file_dialog():
@@ -219,8 +217,10 @@ def open_add_record_window():
             qr_label = tk.Label(qr_photo_box, image=qr_image_tk)
             qr_label.image = qr_image_tk
             qr_label.pack()
+
     def go_back():
         add_record_window.destroy()
+        second_window.deiconify()
 
     add_record_window = tk.Toplevel()
     add_record_window.title("Add Record")
@@ -320,7 +320,7 @@ def open_add_record_window():
     save_button = tk.Button(add_record_window, text="Save Record", bg="gray", font=("Arial", 18), command=add_record_window_save_to_db)
     save_button.place(x=670, y=490)
 
-    add_record_window.mainloop()
+    open_add_record_window()
 
 def open_list_of_students_window():
     def populate_treeview(table):
@@ -338,9 +338,30 @@ def open_list_of_students_window():
         for row in rows:
             table.insert("", "end", values=row)
 
+    def search_data():
+        search_query = search_entry.get().strip().lower()
+
+        # Clear the current items in the Treeview
+        for row in table.get_children():
+            table.delete(row)
+
+        conn = connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM student")
+        rows = cursor.fetchall()
+
+        for row in rows:
+            # Check if the search_query is present in any of the columns
+            if any(search_query in str(cell).strip().lower() for cell in row):
+                table.insert("", "end", values=row)
+
+        conn.close()
+    def connection():
+        conn = pymysql.connect(host="localhost", user="root", password="", database="libtraq_db")
+        return conn
+
     def go_back():
         list_of_students_window.destroy()
-        second_window.deiconify()
 
     list_of_students_window = tk.Toplevel()
     list_of_students_window.title("List Of Students")
@@ -366,7 +387,7 @@ def open_list_of_students_window():
     search_image = Image.open("images/search_icon.png")
     search_photo = ImageTk.PhotoImage(search_image)
 
-    search_button = tk.Button(list_of_students_window, image=search_photo)
+    search_button = tk.Button(list_of_students_window, image=search_photo, command=search_data)
     search_button.place(x=1160, y=190)
 
     search_entry = tk.Entry(list_of_students_window, font=("Arial", 30), width=51, bg="Light Grey")

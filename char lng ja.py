@@ -32,6 +32,10 @@ def read():
     conn.close()
     return results
 
+def search():
+    id_no = str()
+
+
 style = ttk.Style()
 style.configure("Treeview.Heading", font=("Arial", 10))
 my_tree['columns']=("ID Number","First Name","Middle Name","Last Name","Course","Purpose","Date & Time")
