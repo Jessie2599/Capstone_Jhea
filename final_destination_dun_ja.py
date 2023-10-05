@@ -334,6 +334,7 @@ def open_list_of_students_window():
         search_entry.delete(0, tk.END)
         search_entry.insert(0, selected_student_values[1])
 
+
         update_window = tk.Toplevel()
         update_window.title("Update Student")
         update_window.geometry("600x400")
@@ -460,27 +461,21 @@ def open_list_of_students_window():
     back_button = tk.Button(list_of_students_window, image=back_icon, command=go_back, bd=0)
     back_button.place(x=10, y=123)
 
-    update_image = Image.open("images/update_icon.png")
-    update_photo = ImageTk.PhotoImage(update_image)
-
-    update_button = tk.Button(list_of_students_window, image=update_photo)
-    update_button.place(x=1230, y=190)
-
     search_image = Image.open("images/search_icon.png")
     search_photo = ImageTk.PhotoImage(search_image)
 
     search_button = tk.Button(list_of_students_window, image=search_photo, command=search_data)
-    search_button.place(x=1160, y=190)
+    search_button.place(x=1270, y=190)
 
-    search_entry = tk.Entry(list_of_students_window, font=("Arial", 30), width=51, bg="Light Grey")
-    search_entry.place(x=10, y=200)
+    search_entry = tk.Entry(list_of_students_window, font=("Arial", 25), width=69, bg="Light Grey")
+    search_entry.place(x=10, y=205)
 
     table_frame = ttk.Frame(list_of_students_window)
     table_frame.place(x=5, y=270)
 
     table_columns = ("ID Number", "First Name", "Middle Name", "Last Name", "Sex", "Course", "Status", "QR Code", "Photo")
-    table = ttk.Treeview(table_frame, columns=table_columns, show="headings")
-    table.place(x=1000, y=1000, width=1000)
+    table = ttk.Treeview(table_frame, columns=table_columns, show="headings", height=20)
+    table.place(x=1000, y=1000)
 
     scrollbar = ttk.Scrollbar(list_of_students_window, orient="vertical", command=table.yview)
     table.configure(yscrollcommand=scrollbar.set)
@@ -505,15 +500,15 @@ def open_list_of_students_window():
     table.heading("Photo", text="Photo")
 
     # Set column widths
-    table.column("ID Number", width=147)
-    table.column("First Name", width=147)
-    table.column("Middle Name", width=147)
-    table.column("Last Name", width=147)
-    table.column("Sex", width=147)
-    table.column("Course", width=147)
-    table.column("Status", width=147)
-    table.column("QR Code", width=147)
-    table.column("Photo", width=147)
+    table.column("ID Number", width=148, anchor="center")
+    table.column("First Name", width=149, anchor="center")
+    table.column("Middle Name", width=149, anchor="center")
+    table.column("Last Name", width=149, anchor="center")
+    table.column("Sex", width=148, anchor="center")
+    table.column("Course", width=148, anchor="center")
+    table.column("Status", width=148, anchor="center")
+    table.column("QR Code", width=149, anchor="center")
+    table.column("Photo", width=149, anchor="center")
 
     # Populate the Treeview with data
     populate_treeview(table)
