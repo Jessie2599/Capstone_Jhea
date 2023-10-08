@@ -1,8 +1,10 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import ttk, Entry, messagebox, END  # Add END here
 from datetime import datetime
-from tkinter import *
 import pymysql
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 
 recorded_data = []
 date_time_label = None
@@ -37,7 +39,6 @@ def clear_and_restart():
 def restart():
     clear_and_restart()
     display_purposes(None)
-
 def save_and_confirm_purpose(purpose):
     global id_entry, entry_enabled, selected_purpose
 
@@ -45,20 +46,21 @@ def save_and_confirm_purpose(purpose):
 
     if id_number:
         current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        recorded_data.append([id_number, current_datetime, purpose])
+        # Generate a unique identifier by appending the current timestamp to the ID number
+        unique_id = f"{id_number}-{current_datetime}"
+        recorded_data.append([unique_id, current_datetime, purpose])
         connect = pymysql.connect(host='localhost', user='root', password="", database='libtraq_db')
         cursor = connect.cursor()
-        id_no_get = id_entry.get()
 
         try:
             # Fetch the First Name, Middle Name, Last Name, and Course from the "student" table
-            cursor.execute("SELECT first_name, middle_name, last_name, course FROM student WHERE id_no = %s", (id_no_get,))
+            cursor.execute("SELECT first_name, middle_name, last_name, course FROM student WHERE id_no = %s", (id_number,))
             result = cursor.fetchone()
 
             if result:
                 first_name, middle_name, last_name, course = result
                 cursor.execute(f"INSERT INTO `library_attendance` (`id_no`, `first_name`, `middle_name`, `last_name`, `course`, `purpose`, `date_and_time`) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                               (id_no_get, first_name, middle_name, last_name, course, purpose, current_datetime))
+                               (unique_id, first_name, middle_name, last_name, course, purpose, current_datetime))
                 connect.commit()
                 connect.close()
                 messagebox.showinfo("Save Successful!")
@@ -118,53 +120,154 @@ def handle_purpose_key(key, purpose):
     selected_purpose = purpose
     save_and_confirm_purpose(purpose)
 
-def home():
-    global date_time_label, id_entry, purpose_label, purposes_frame, home, entry_enabled, selected_purpose
-    home = tk.Tk()
-    home.title("LibTraQ: Library Tracker and Monitoring System using QR Code")
-    home.geometry("1366x768")
-    home.resizable(height=False, width=False)
 
-    date_time_label = tk.Label(home, text="", font=("Arial", 18))
-    date_time_label.place(relx=0.03, rely=1.0, anchor=tk.SW)
-    update_datetime()
+def fetch_data_and_create_graph():
+    try:
+        connect = pymysql.connect(host='localhost', user='root', password="", database='libtraq_db')
+        cursor = connect.cursor()
 
-    canvas = tk.Canvas(home, width=1600, height=1500)
-    canvas.pack()
+        cursor.execute("SELECT course, COUNT(*) FROM library_attendance GROUP BY course")
+        results = cursor.fetchall()
+        connect.close()
 
-    background_image = tk.PhotoImage(file="images/student_background.png")
-    background_label = tk.Label(canvas, image=background_image)
-    background_label.place(x=0, y=0, relwidth=1, relheight=1)
+        if not results:
+            messagebox.showerror("Error", "No attendance data found.")
+            return
 
-    id_label = tk.Label(home, text="Library Number:", font=("Arial", 20))
-    id_label.place(x=660, y=360)
+        courses, counts = zip(*results)
 
-    id_entry = Entry(home, font=("Arial", 20))
-    id_entry.place(x=865, y=360)
-    id_entry.focus()
+        fig, ax = plt.subplots(figsize=(6, 4))
+        ax.bar(courses, counts, color='blue')
+        ax.set_xlabel('Course')
+        ax.set_ylabel('Attendance Count')
+        ax.set_title('Attendance by Course')
+        ax.tick_params(axis='x', rotation=45)
 
-    id_entry.bind("<Return>", display_purposes)
+        canvas = FigureCanvasTkAgg(fig, master=home)
+        canvas.get_tk_widget().place(x=20, y=320)
+        canvas.draw()
+    except pymysql.Error as e:
+        messagebox.showerror("Database Error", f"Error: {e}")
 
-    purpose_label = tk.Label(home, text="Purpose:", font=("Arial", 20))
-    purpose_label.place(x=660, y=410)
+# Function to generate and display the bar graph
+def generate_bar_graph():
+    fetch_data_and_create_graph()
 
-    purposes_frame = tk.Frame(home)
-    purposes_frame.place(x=860, y=410)
+def generate_leaderboard():
+    try:
+        connect = pymysql.connect(host='localhost', user='root', password="", database='libtraq_db')
+        cursor = connect.cursor()
 
-    entry_enabled = True
-    selected_purpose = None
+        cursor.execute("SELECT first_name, middle_name, last_name, course, COUNT(*) as attendance_count FROM library_attendance GROUP BY first_name, middle_name, last_name, course ORDER BY attendance_count DESC LIMIT 10")
+        results = cursor.fetchall()
+        connect.close()
 
-    home.bind("<space>", lambda event: restart())
+        if not results:
+            messagebox.showerror("Error", "No attendance data found.")
+            return
 
-    home.bind("a", lambda event: handle_purpose_key("a", "Read Book"))
-    home.bind("b", lambda event: handle_purpose_key("b", "Borrowed/Returned Books"))
-    home.bind("c", lambda event: handle_purpose_key("c", "Connect Internet"))
-    home.bind("d", lambda event: handle_purpose_key("d", "Research"))
-    home.bind("e", lambda event: handle_purpose_key("e", "Go to the Librarian"))
-    home.bind("f", lambda event: handle_purpose_key("f", "Others"))
+        leaderboard_label = tk.Label(home, text="Top Ten Visitors", font=("Arial", 15, "bold"))
+        leaderboard_label.place(x=200, y=5)
 
-    db_config = {'host': 'localhost', 'user': 'root', 'password': '', 'db': 'libtraq_db',}
-    db = pymysql.connect(**db_config)
-    cursor = db.cursor()
-    home.mainloop()
-home()
+        leaderboard_frame = tk.Frame(home)
+        leaderboard_frame.place(x=20, y=40)
+
+        # Create a listbox to display the leaderboard
+        leaderboard_listbox = tk.Listbox(leaderboard_frame, font=("Arial", 17), selectmode="none", width=46, height=10)
+        leaderboard_listbox.pack(fill="both", expand=True)
+
+        # Populate the leaderboard listbox with the top ten attendees
+        for index, (first_name, middle_name, last_name, course, attendance_count) in enumerate(results, start=1):
+            leaderboard_listbox.insert("end", f"{index}. {first_name} {middle_name} {last_name} ({course}): {attendance_count} attendance(s)")
+
+    except pymysql.Error as e:
+        messagebox.showerror("Database Error", f"Error: {e}")
+
+# Create the main window
+home = tk.Tk()
+home.title("LibTraQ: Library Tracker and Monitoring System using QR Code")
+home.geometry("1366x768")
+home.resizable(height=False, width=False)
+
+# Create and update the date and time label
+date_time_label = tk.Label(home, text="", font=("Arial", 18))
+date_time_label.place(relx=0.03, rely=1.0, anchor=tk.SW)
+update_datetime()
+
+# Create a canvas for background
+canvas = tk.Canvas(home, width=1600, height=1500)
+canvas.pack()
+
+# Define the connection function
+def connection():
+    conn = pymysql.connect(host="localhost", user="root", password="", database="libtraq_db")
+    return conn
+
+# Create and populate the Treeview widget
+my_tree = ttk.Treeview(home, height=20)
+my_tree['columns'] = ("ID Number", "First Name", "Middle Name", "Last Name", "Course", "Purpose", "Date & Time")
+
+# Set column widths and headings
+my_tree.column("#0", width=0, stretch=tk.NO)
+my_tree.column("ID Number", anchor="center", width=120)
+my_tree.column("First Name", anchor="center", width=120)
+my_tree.column("Middle Name", anchor="center", width=120)
+my_tree.column("Last Name", anchor="center", width=120)
+my_tree.column("Course", anchor="center", width=110)
+my_tree.column("Purpose", anchor="center", width=150)
+my_tree.column("Date & Time", anchor="center", width=150)
+
+my_tree.heading("ID Number", text="ID Number", anchor="center")
+my_tree.heading("First Name", text="First Name", anchor="center")
+my_tree.heading("Middle Name", text="Middle Name", anchor="center")
+my_tree.heading("Last Name", text="Last Name", anchor="center")
+my_tree.heading("Course", text="Course", anchor="center")
+my_tree.heading("Purpose", text="Purpose", anchor="center")
+my_tree.heading("Date & Time", text="Date & Time", anchor="center")
+
+my_tree.pack()
+
+# Create a background image
+background_image = tk.PhotoImage(file="images/student_background.png")
+background_label = tk.Label(canvas, image=background_image)
+background_label.place(x=0, y=0, relwidth=1, relheight=1)
+
+# Create buttons
+graph_button = tk.Button(home, bg="orange", text="Graph", font=("Arial", 16), command=generate_bar_graph)
+graph_button.place(x=1260, y=690)
+
+leaderboard_button = tk.Button(home, bg="orange", text="Leaderboard", font=("Arial", 16), command=generate_leaderboard)
+leaderboard_button.place(x=1120, y=690)
+
+id_label = tk.Label(home, text="Library Number:", font=("Arial", 20))
+id_label.place(x=730, y=360)
+
+id_entry = Entry(home, font=("Arial", 20))
+id_entry.place(x=946, y=360)
+id_entry.focus()
+
+id_entry.bind("<Return>", display_purposes)
+
+purpose_label = tk.Label(home, text="Purpose:", font=("Arial", 20))
+purpose_label.place(x=730, y=410)
+
+purposes_frame = tk.Frame(home)
+purposes_frame.place(x=945, y=410)
+
+entry_enabled = True
+selected_purpose = None
+
+home.bind("<space>", lambda event: restart())
+
+home.bind("a", lambda event: handle_purpose_key("a", "Read Book"))
+home.bind("b", lambda event: handle_purpose_key("b", "Borrowed/Returned Books"))
+home.bind("c", lambda event: handle_purpose_key("c", "Connect Internet"))
+home.bind("d", lambda event: handle_purpose_key("d", "Research"))
+home.bind("e", lambda event: handle_purpose_key("e", "Go to the Librarian"))
+home.bind("f", lambda event: handle_purpose_key("f", "Others"))
+
+db_config = {'host': 'localhost', 'user': 'root', 'password': '', 'db': 'libtraq_db', }
+db = pymysql.connect(**db_config)
+cursor = db.cursor()
+
+home.mainloop()
