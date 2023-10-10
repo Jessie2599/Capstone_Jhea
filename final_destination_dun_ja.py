@@ -17,7 +17,7 @@ import os  # Added for file handling
 import shutil
 import matplotlib.pyplot as plt
 import numpy as np
-import io
+import base64
 
 
 PIN = "1234"
@@ -71,7 +71,6 @@ def second_window():
         return results
 
     my_tree = ttk.Treeview(second_window,  height=25)
-
     my_tree['columns'] = ("ID Number", "First Name", "Middle Name", "Last Name", "Course", "Purpose", "Date & Time")
 
     my_tree.column("#0", width=0, stretch=tk.NO)
@@ -164,9 +163,8 @@ def second_window():
 
     second_window.mainloop()
 
-file_path = ""
-
 def open_add_record_window():
+
     def add_record_window_save_to_db():
         id_get = id_entry.get()
         fname_get = first_name_entry.get()
@@ -175,65 +173,16 @@ def open_add_record_window():
         sex_get = sex_var.get()
         course_get = course_var.get()
         status_get = status_var.get()
-
-        # Convert QR code to a byte stream
-        qr_data = id_get
-        qr = qrcode.QRCode(version=1, box_size=8, border=1)
-        qr.add_data(qr_data)
-        qr.make(fit=True)
-        qr_image = qr.make_image(fill_color="black", back_color="white")
-        qr_image_bytes = io.BytesIO()
-        qr_image.save(qr_image_bytes, format="PNG")
-
-        try:
-            conn = connection()
-            cursor = conn.cursor()
-
-            # Convert uploaded photo to a byte stream
-            with open(file_path, "rb") as photo_file:
-                photo_bytes = io.BytesIO(photo_file.read())
-
-            cursor.execute(
-                "INSERT INTO student (id_no, first_name, middle_name, last_name, sex, course, status, qr_code, photo) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                (id_get, fname_get, mname_get, lname_get, sex_get, course_get, status_get, qr_image_bytes.getvalue(),
-                 photo_bytes.getvalue()))
-            conn.commit()
-            conn.close()
-            messagebox.showinfo("Success", "Save Successful!")
-
-            id_entry.delete(0, tk.END)
-            first_name_entry.delete(0, tk.END)
-            middle_name_entry.delete(0, tk.END)
-            last_name_entry.delete(0, tk.END)
-            sex_var.set("None")
-            course_var.set("None")
-            status_var.set("None")
-
-        except Exception as error:
-            messagebox.showerror("Error!", str(error))
-            print(error)
+        qr_data = id_entry.get()
 
     def open_file_dialog():
-        global file_path  # Use global to access the global-scope file_path
-        file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.jpg *.jpeg *.png *.gif")])
+        file_path = filedialog.askopenfilename(parent=add_record_window, filetypes=[("Image files", "*.jpg *.jpeg *.png *.gif")])
         if file_path:
-            display_selected_image(file_path)
-
-    if __name__ == "__main__":
-        open_add_record_window()
-        tk.mainloop()
-
-
-    def display_selected_image(file_path):
-        for widget in photo_box.winfo_children():
-            widget.destroy()
-
-        image = Image.open(file_path)
-        image = image.resize((210, 195), Image.LANCZOS)
-        photo = ImageTk.PhotoImage(image)
-        image_label = tk.Label(photo_box, image=photo)
-        image_label.image = photo
-        image_label.pack(fill="both", expand=True)
+            image = Image.open(file_path)
+            displayed_image = ImageTk.PhotoImage(image)
+            label = tk.Label(photo_box, image=displayed_image)
+            label.image = displayed_image
+            label.pack()
 
     def generate_qr_code():
         qr_data = id_entry.get()
@@ -251,10 +200,28 @@ def open_add_record_window():
             qr_label.image = qr_image_tk
             qr_label.pack()
 
+        try:
+            conn = connection()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO student (id_no, first_name, middle_name, last_name, sex, course, status, qr_code, photo) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", (id_get, fname_get, mname_get, lname_get, sex_get, course_get, status_get, qr_data, file_path))
+            conn.commit()
+            conn.close()
+            messagebox.showinfo("Success", "Save Successful!")
+
+            id_entry.delete(0, tk.END)
+            first_name_entry.delete(0, tk.END)
+            middle_name_entry.delete(0, tk.END)
+            last_name_entry.delete(0, tk.END)
+            sex_var.set("None")
+            course_var.set("None")
+            status_var.set("None")
+
+        except Exception as error:
+            messagebox.showerror("Error!", str(error))
+            print(error)
+
     def go_back():
         add_record_window.destroy()
-        second_window.deiconify()
-
 
     add_record_window = tk.Toplevel()
     add_record_window.title("Add Record")
@@ -354,7 +321,7 @@ def open_add_record_window():
     save_button = tk.Button(add_record_window, text="Save Record", bg="gray", font=("Arial", 18), command=add_record_window_save_to_db)
     save_button.place(x=670, y=490)
 
-    open_add_record_window_mainloop()
+    add_record_window.mainloop()
 
 def open_list_of_students_window():
     global table
@@ -367,7 +334,6 @@ def open_list_of_students_window():
 
         search_entry.delete(0, tk.END)
         search_entry.insert(0, selected_student_values[1])
-
 
         update_window = tk.Toplevel()
         update_window.title("Update Student")
@@ -430,15 +396,7 @@ def open_list_of_students_window():
         qr_code_button = tk.Button(update_window, text="Generate QR",bg="gray", font=("Arial", 12))
         qr_code_button.place(x=440, y=155)
 
-        print_image = Image.open("images/print_icon.png")
-        print_photo = ImageTk.PhotoImage(print_image)
-
-        print_button = tk.Button(update_window, image=print_photo)
-        print_button.place(x=460, y=200)
-
-        update_window.mainloop()
-
-    def perform_update(update_window, id_no_entry, first_name_entry, middle_name_entry, last_name_entry, sex_entry, course_entry, status_entry):
+    def perform_update(update_window, id_no_entry, first_name_entry, middle_name_entry, last_name_entry, sex_entry, course_entry, status_entry, photo_path, qr_code_data):
         updated_id_no = id_no_entry.get()
         updated_first_name = first_name_entry.get()
         updated_middle_name = middle_name_entry.get()
@@ -447,21 +405,23 @@ def open_list_of_students_window():
         updated_course = course_entry.get()
         updated_status = status_entry.get()
 
+        with open(photo_path, 'rb') as photo_file:
+            photo_data = base64.b64encode(photo_file.read()).decode('utf-8')
+
+        qr_code_data = qr_code_data
+
         conn = connection()
         cursor = conn.cursor()
-        update_query = "UPDATE student SET first_name = %s, middle_name = %s, last_name = %s, sex = %s, course = %s, status = %s WHERE id_no = %s"
-        cursor.execute(update_query, (updated_first_name, updated_middle_name, updated_last_name, updated_sex, updated_course, updated_status, updated_id_no))
+        update_query = "UPDATE student SET first_name = %s, middle_name = %s, last_name = %s, sex = %s, course = %s, status = %s, photo = %s, qr_code = %s WHERE id_no = %s"
+        cursor.execute(update_query, (updated_first_name, updated_middle_name, updated_last_name, updated_sex, updated_course, updated_status, updated_photo_path, updated_qr_code_data, updated_id_no))
         conn.commit()
         conn.close()
 
-        # Close the update window
         update_window.destroy()
 
-        # Refresh the table with updated data
         populate_treeview(table)
 
     def populate_treeview(table):
-        # Delete existing items in the Treeview
         for row in table.get_children():
             table.delete(row)
 
@@ -541,7 +501,6 @@ def open_list_of_students_window():
         table.heading(col, text=col)
         table.column(col, width=100)
 
-    # Define column headers
     table.heading("ID Number", text="ID Number")
     table.heading("First Name", text="First Name")
     table.heading("Middle Name", text="Middle Name")
@@ -552,7 +511,6 @@ def open_list_of_students_window():
     table.heading("QR Code", text="QR Code")
     table.heading("Photo", text="Photo")
 
-    # Set column widths
     table.column("ID Number", width=148, anchor="center")
     table.column("First Name", width=149, anchor="center")
     table.column("Middle Name", width=149, anchor="center")
@@ -563,7 +521,6 @@ def open_list_of_students_window():
     table.column("QR Code", width=149, anchor="center")
     table.column("Photo", width=149, anchor="center")
 
-    # Populate the Treeview with data
     populate_treeview(table)
 
     list_of_students_window.mainloop()
@@ -643,23 +600,19 @@ def open_generate_report_window():
     def print_report():
         selected_courses = course_var.get()
 
-        # Create a Word document
         filename = "report.docx"
         document = Document()
 
-        # Add content to the Word document (customize this part as needed)
         document.add_heading("Library Attendance Report", 0)
         document.add_paragraph("Selected Semester: " + semester_var.get())
         document.add_paragraph("Selected Courses: " + course_var.get())
         document.add_paragraph("Generated by: Mariter Asur")
 
-        # Create a table with headers
         table = document.add_table(rows=1, cols=7)
-        table.allow_autofit = False  # Prevent table from auto-adjusting column widths
+        table.allow_autofit = False
 
-        table.style = 'Table Grid'  # Apply a table style
+        table.style = 'Table Grid'
 
-        # Add table headers
         table_headers = table.rows[0].cells
         table_headers[0].text = "ID Number"
         table_headers[1].text = "First Name"
@@ -669,7 +622,6 @@ def open_generate_report_window():
         table_headers[5].text = "Purpose"
         table_headers[6].text = "Date & Time"
 
-        # Get data from the Treeview and add it to the Word document table
         for item in my_tree.get_children():
             values = my_tree.item(item, 'values')
             data = list(map(str, values))
@@ -687,7 +639,6 @@ def open_generate_report_window():
         # Display a messagebox
         tk.messagebox.showinfo("Print Successful", "The report has been generated and saved successfully.")
 
-        # Move the file to the "Downloads" folder (change the path as needed)
         downloads_folder = os.path.expanduser("~") + "/Downloads"
         new_filepath = os.path.join(downloads_folder, filename)
         shutil.move(filename, new_filepath)
@@ -698,15 +649,12 @@ def open_generate_report_window():
         selected_semester = semester_var.get()
         selected_course = course_var.get()
 
-        # Clear the Treeview widget
         for row in my_tree.get_children():
             my_tree.delete(row)
 
-        # Fetch records from the database based on the selected semester and course
         conn = connection()
         cursor = conn.cursor()
 
-        # Define SQL query based on selected semester and course
         if selected_semester == "1st Semester":
             date_range_query = "date_and_time >= 'August' AND date_and_time <= 'December'"
         elif selected_semester == "2nd Semester":
@@ -721,7 +669,6 @@ def open_generate_report_window():
         else:
             course_query = f"course = '{selected_course}'"
 
-        # Construct the full SQL query based on semester and course
         if date_range_query and course_query:
             query = f"SELECT * FROM library_attendance WHERE {date_range_query} AND {course_query}"
         elif date_range_query:
@@ -735,17 +682,15 @@ def open_generate_report_window():
         records = cursor.fetchall()
         conn.close()
 
-        # Display fetched records in the Treeview widget
         for record in records:
             my_tree.insert("", "end", values=record)
 
     def generate_bar_graph():
         course_counts = {}
 
-        # Count the attendance for each course
         for item in my_tree.get_children():
             values = my_tree.item(item, 'values')
-            course = values[4]  # Assuming course is in the 5th column
+            course = values[4]
             if course in course_counts:
                 course_counts[course] += 1
             else:
@@ -826,10 +771,9 @@ def open_library_utilization_window():
     def generate_bar_graph():
         course_counts = {}
 
-        # Count the attendance for each course
         for item in my_tree.get_children():
             values = my_tree.item(item, 'values')
-            course = values[4]  # Assuming course is in the 5th column
+            course = values[4]
             if course in course_counts:
                 course_counts[course] += 1
             else:
@@ -839,28 +783,26 @@ def open_library_utilization_window():
         counts = list(course_counts.values())
 
         fig, ax = plt.subplots(figsize=(6, 4))
-        ax.bar(courses, counts, color='blue')
+        ax.bar(courses, counts, color='gray')
         ax.set_xlabel('Course')
         ax.set_ylabel('Attendance Count')
         ax.set_title('Attendance by Course')
         ax.tick_params(axis='x', rotation=45)
 
-        # Create a FigureCanvasTkAgg widget to embed the graph in a Tkinter Canvas
         canvas = FigureCanvasTkAgg(fig, master=library_utilization_window)
-        canvas.get_tk_widget().place(x=0, y=280)  # Adjust the coordinates as needed
+        canvas.get_tk_widget().place(x=0, y=280)
         canvas.draw()
 
     def generate_leaderboard():
         attendance_counts = {}
 
-        # Count the attendance for each individual
         for item in my_tree.get_children():
             values = my_tree.item(item, 'values')
-            id_number = values[0]  # Assuming ID number is in the 1st column
-            first_name = values[1]  # Assuming first name is in the 2nd column
-            middle_name = values[2]  # Assuming middle name is in the 3rd column
-            last_name = values[3]  # Assuming last name is in the 4th column
-            course = values[4]  # Assuming course is in the 5th column
+            id_number = values[0]
+            first_name = values[1]
+            middle_name = values[2]
+            last_name = values[3]
+            course = values[4]
 
             student_key = (first_name, middle_name, last_name, course)
 
@@ -869,7 +811,6 @@ def open_library_utilization_window():
             else:
                 attendance_counts[student_key] = 1
 
-        # Sort the attendance counts in descending order and select the top 10
         sorted_attendance = sorted(attendance_counts.items(), key=lambda x: x[1], reverse=True)[:10]
 
         leaderboard_label = tk.Label(library_utilization_window, text="Frequent Visitor", font=("Arial", 20, "bold"))
@@ -878,26 +819,18 @@ def open_library_utilization_window():
         leaderboard_frame = tk.Frame(library_utilization_window)
         leaderboard_frame.place(x=610, y=320)
 
-        # Create a scrollbar for the leaderboard
         scrollbar = tk.Scrollbar(leaderboard_frame, orient="vertical")
         scrollbar.pack(side="right", fill="y")
 
-        # Create a listbox to display the leaderboard
-        leaderboard_listbox = tk.Listbox(leaderboard_frame, yscrollcommand=scrollbar.set, font=("Arial", 20),
-                                         selectmode="none", width=47, height=10)  # Adjust width and height as needed
+        leaderboard_listbox = tk.Listbox(leaderboard_frame, yscrollcommand=scrollbar.set, font=("Arial", 20), selectmode="none", width=47, height=10)
         leaderboard_listbox.pack(fill="both", expand=True)
 
         scrollbar.config(command=leaderboard_listbox.yview)
-
-        # Populate the leaderboard listbox with the top 10 individuals and their attendance counts
         for index, (student_key, attendance_count) in enumerate(sorted_attendance, start=1):
             first_name, middle_name, last_name, course = student_key
+            leaderboard_listbox.insert("end",f"{index}. {first_name} {middle_name} {last_name} ({course}): {attendance_count} attendance(s)")
 
-            # Include numbering before each name
-            leaderboard_listbox.insert("end",
-                                       f"{index}. {first_name} {middle_name} {last_name} ({course}): {attendance_count} attendance(s)")
-
-    graph_button = tk.Button(library_utilization_window, bg="orange", text="Graph", font=("Arial", 16),command=generate_bar_graph)
+    graph_button = tk.Button(library_utilization_window, bg="orange", text="Graph", font=("Arial", 16), command=generate_bar_graph)
     graph_button.place(x=25, y=200)
 
     leaderboard_button = tk.Button(library_utilization_window, bg="orange", text="Leaderboard", font=("Arial", 16), command=generate_leaderboard)
@@ -956,47 +889,35 @@ def open_change_pin_window():
     back_button = tk.Button(change_pin_window, image=back_icon, command=go_back, bd=0)
     back_button.place(x=10, y=123)
 
-    old_username_label = tk.Label(change_pin_window, text="Old Username", font=("Arial", 18))
-    old_username_label.place(x=300, y=240)
-
-    old_username_entry = tk.Entry(change_pin_window, width=50, bg="lightgray", font=("Arial", 18))
-    old_username_entry.place(x=480, y=240)
-
     old_pin_label = tk.Label(change_pin_window, text="Old Pin", font=("Arial", 18))
-    old_pin_label.place(x=300, y=280)
+    old_pin_label.place(x=300, y=240)
 
     old_pin_entry = tk.Entry(change_pin_window, width=50, bg="lightgray", font=("Arial", 18))
-    old_pin_entry.place(x=480, y=280)
+    old_pin_entry.place(x=470, y=240)
 
-    new_username_label = tk.Label(change_pin_window, text="New Username", font=("Arial", 18))
-    new_username_label.place(x=300, y=320)
+    new_pin_label = tk.Label(change_pin_window, text="New Pin", font=("Arial", 18))
+    new_pin_label.place(x=300, y=280)
 
-    new_username_entry = tk.Entry(change_pin_window, width=50, bg="lightgray", font=("Arial", 18))
-    new_username_entry.place(x=480, y=320)
+    new_pin_entry = tk.Entry(change_pin_window, width=50, bg="lightgray", font=("Arial", 18))
+    new_pin_entry.place(x=470, y=280)
 
-    #middle_name_label = tk.Label(change_pin_window, text="Middle Name", font=("Arial", 18))
-    #middle_name_label.place(x=300, y=360)
+    first_name_label = tk.Label(change_pin_window, text="First Name", font=("Arial", 18))
+    first_name_label.place(x=300, y=320)
 
-    #middle_name_entry = tk.Entry(change_pin_window, width=50, bg="lightgray", font=("Arial", 18))
-    #middle_name_entry.place(x=470, y=360)
+    first_name_entry = tk.Entry(change_pin_window, width=50, bg="lightgray", font=("Arial", 18))
+    first_name_entry.place(x=470, y=320)
 
-    #last_name_label = tk.Label(change_pin_window, text="Last Name", font=("Arial", 18))
-    #last_name_label.place(x=300, y=400)
+    middle_name_label = tk.Label(change_pin_window, text="Middle Name", font=("Arial", 18))
+    middle_name_label.place(x=300, y=360)
 
-    #last_name_entry = tk.Entry(change_pin_window, width=50, bg="lightgray", font=("Arial", 18))
-    #last_name_entry.place(x=470, y=400)
+    middle_name_entry = tk.Entry(change_pin_window, width=50, bg="lightgray", font=("Arial", 18))
+    middle_name_entry.place(x=470, y=360)
 
-    #sex_label = tk.Label(change_pin_window, text="Sex:", font=("Arial", 18))
-    #sex_label.place(x=520, y=360)
+    last_name_label = tk.Label(change_pin_window, text="Last Name", font=("Arial", 18))
+    last_name_label.place(x=300, y=400)
 
-    #sex_var = tk.StringVar(change_pin_window)
-    #sex_var.set("Male")
-
-    #male_radio = tk.Radiobutton(change_pin_window, text="Male", variable=sex_var, value="Male", font=("Arial", 18))
-    #female_radio = tk.Radiobutton(change_pin_window, text="Female", variable=sex_var, value="Female",font=("Arial", 18))
-
-    #male_radio.place(x=670, y=360)
-    #female_radio.place(x=770, y=360)
+    last_name_entry = tk.Entry(change_pin_window, width=50, bg="lightgray", font=("Arial", 18))
+    last_name_entry.place(x=470, y=400)
 
     change_pin_window.bind("<Return>", simulate_enter)
     change_pin_window.protocol("WM_DELETE_WINDOW", go_back)
@@ -1040,7 +961,6 @@ def on_focus_out(event):
     if not pin_entry.get():
         pin_entry.insert(0, hint_text)
         pin_entry.config(fg='grey')
-
 
 if __name__ == '__main__':
     window = tk.Tk()

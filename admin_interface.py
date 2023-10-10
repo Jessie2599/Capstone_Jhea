@@ -13,7 +13,7 @@ import keyboard
 import pymysql
 from tkinter import Frame
 import sqlite3
-import os  # Added for file handling
+import os
 import shutil
 import matplotlib.pyplot as plt
 import numpy as np
@@ -70,7 +70,6 @@ def second_window():
         return results
 
     my_tree = ttk.Treeview(second_window,  height=25)
-
     my_tree['columns'] = ("ID Number", "First Name", "Middle Name", "Last Name", "Course", "Purpose", "Date & Time")
 
     my_tree.column("#0", width=0, stretch=tk.NO)
@@ -173,11 +172,13 @@ def open_add_record_window():
         sex_get = sex_var.get()
         course_get = course_var.get()
         status_get = status_var.get()
+        qr_data = id_entry.get()
+        file_path = filedialog
 
         try:
             conn = connection()
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO student (id_no, first_name, middle_name, last_name, sex, course, status) VALUES (%s, %s, %s, %s, %s, %s, %s)", (id_get, fname_get, mname_get, lname_get, sex_get, course_get, status_get))
+            cursor.execute("INSERT INTO student (id_no, first_name, middle_name, last_name, sex, course, status, qr_code, photo) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", (id_get, fname_get, mname_get, lname_get, sex_get, course_get, status_get, qr_data, file_path))
             conn.commit()
             conn.close()
             messagebox.showinfo("Success", "Save Successful!")
@@ -193,6 +194,28 @@ def open_add_record_window():
         except Exception as error:
             messagebox.showerror("Error!", str(error))
             print(error)
+    def open_file_dialog():
+        file_path = filedialog.askopenfilename(parent=add_record_window, filetypes=[("Image files", "*.jpg *.jpeg *.png *.gif")])
+        if file_path:
+            image = Image.open(file_path)
+
+            displayed_image = ImageTk.PhotoImage(image)
+
+            label = tk.Label(photo_box, image=displayed_image)
+            label.image = displayed_image
+            label.pack()
+    def open_file_dialog():
+        file_path = filedialog.askopenfilename(parent=add_record_window, filetypes=[("Image files", "*.jpg *.jpeg *.png *.gif")])
+        if file_path:
+            image = Image.open(file_path)
+
+            image = image.resize((200, 180), Image.LANCZOS)
+
+            displayed_image = ImageTk.PhotoImage(image)
+
+            label = tk.Label(photo_box, image=displayed_image)
+            label.image = displayed_image
+            label.pack()
 
     def generate_qr_code():
         qr_data = id_entry.get()
@@ -212,7 +235,6 @@ def open_add_record_window():
 
     def go_back():
         add_record_window.destroy()
-        second_window.deiconify()
 
     add_record_window = tk.Toplevel()
     add_record_window.title("Add Record")
@@ -303,21 +325,7 @@ def open_add_record_window():
     qr_photo_box = Frame(add_record_window, width=220, height=200, bg="white", highlightbackground="black", highlightthickness=2)
     qr_photo_box.place(x=260, y=200)
 
-    def upload_photo():
-        file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.png *.jpg *.jpeg *.gif *.bmp")])
-
-        if file_path:
-            try:
-                image = Image.open(file_path)
-                image.thumbnail((200, 200))  # Resize the image to fit the photo_box
-                photo = ImageTk.PhotoImage(image)
-                photo_label = tk.Label(photo_box, image=photo)
-                photo_label.image = photo  # Keep a reference to avoid garbage collection
-                photo_label.pack()
-            except Exception as error:
-                messagebox.showerror("Error!", str(error))
-
-    upload_button = tk.Button(add_record_window, text="Upload Photo", font=("Arial", 18), command=upload_photo)
+    upload_button = tk.Button(add_record_window, text="Upload Photo", font=("Arial", 18), command=open_file_dialog)
     upload_button.place(x=38, y=406)
 
     qr_code_button = tk.Button(add_record_window, text="Generate QR", font=("Arial", 18), command=generate_qr_code)
@@ -326,7 +334,7 @@ def open_add_record_window():
     save_button = tk.Button(add_record_window, text="Save Record", bg="gray", font=("Arial", 18), command=add_record_window_save_to_db)
     save_button.place(x=670, y=490)
 
-    add_record_window_mainloop()
+    add_record_window.mainloop()
 
 def open_list_of_students_window():
     global table
@@ -402,7 +410,7 @@ def open_list_of_students_window():
         qr_code_button = tk.Button(update_window, text="Generate QR",bg="gray", font=("Arial", 12))
         qr_code_button.place(x=440, y=155)
 
-    def perform_update(update_window, id_no_entry, first_name_entry, middle_name_entry, last_name_entry, sex_entry, course_entry, status_entry):
+    def perform_update(update_window, id_no_entry, first_name_entry, middle_name_entry, last_name_entry, sex_entry, course_entry, status_entry, qr_photo_box, photo_box):
         updated_id_no = id_no_entry.get()
         updated_first_name = first_name_entry.get()
         updated_middle_name = middle_name_entry.get()
@@ -410,11 +418,13 @@ def open_list_of_students_window():
         updated_sex = sex_entry.get()
         updated_course = course_entry.get()
         updated_status = status_entry.get()
+        updated_qr_code = qr_photo_box.get()
+        updated_photo = photo_box.get
 
         conn = connection()
         cursor = conn.cursor()
-        update_query = "UPDATE student SET first_name = %s, middle_name = %s, last_name = %s, sex = %s, course = %s, status = %s WHERE id_no = %s"
-        cursor.execute(update_query, (updated_first_name, updated_middle_name, updated_last_name, updated_sex, updated_course, updated_status, updated_id_no))
+        update_query = "UPDATE student SET first_name = %s, middle_name = %s, last_name = %s, sex = %s, course = %s, status = %s, qr_code = %s, photo = %s WHERE id_no = %s"
+        cursor.execute(update_query, (updated_first_name, updated_middle_name, updated_last_name, updated_sex, updated_course, updated_status, updated_qr_code, updated_photo, updated_id_no))
         conn.commit()
         conn.close()
 
